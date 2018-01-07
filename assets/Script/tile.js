@@ -5,24 +5,42 @@ cc.Class({
         number: {
             default: null,
             type: cc.Label
-        }
+        },
+        _fake_value: 0
     },
 
     // LIFE-CYCLE CALLBACKS:
 
-    // onLoad () {},
+    onLoad() {
+    },
 
-    start () {
+    start() {
 
     },
 
     // update (dt) {},
-
-    update_value: function (value) {
-        this.number.string = value;
-        this.node.color = this.get_bk_color_by_value(value)
-        this.number.node.color = this.get_text_color_by_value(value)
+    get_value() {
+        return this._fake_value;
     },
+
+    set_fake_value(value) {
+        this._fake_value = value;
+    },
+
+    set_value: function (value) {
+        if (this.number.string !== toString(value)) {
+            this._fake_value = toString(value);
+            if (value === 0) {
+                this.number.string = ''
+            } else {
+                this.number.string = value;
+            }
+            this.node.color = this.get_bk_color_by_value(value)
+            this.number.node.color = this.get_text_color_by_value(value)
+        }
+    },
+
+    clone() {},
 
     get_bk_color_by_value: function (value) {
         var color_map = {
