@@ -72,7 +72,7 @@ cc.Class({
     clone() {},
 
     get_bk_color_by_value: function (value) {
-        return bk_color_map[value] || cc.color(0xee, 0xe4, 0xda, 0xFF);
+        return bk_color_map[value] || cc.color(0xcf, 0xc1, 0xb3, 0xFF);
     },
     get_text_color_by_value: function (value) {
         return text_color_map[value] || cc.color(0x77, 0x6e, 0x65, 0xFF);
