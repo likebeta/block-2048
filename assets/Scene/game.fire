@@ -1829,7 +1829,8 @@
     "_enabled": true,
     "number": {
       "__id__": 44
-    }
+    },
+    "_fake_value": 0
   },
   {
     "__type__": "cc.Node",
@@ -2000,7 +2001,8 @@
     "_enabled": true,
     "number": {
       "__id__": 49
-    }
+    },
+    "_fake_value": 0
   },
   {
     "__type__": "cc.Node",
@@ -2171,7 +2173,8 @@
     "_enabled": true,
     "number": {
       "__id__": 54
-    }
+    },
+    "_fake_value": 0
   },
   {
     "__type__": "cc.Node",
@@ -2342,7 +2345,8 @@
     "_enabled": true,
     "number": {
       "__id__": 59
-    }
+    },
+    "_fake_value": 0
   },
   {
     "__type__": "cc.Node",
@@ -2513,7 +2517,8 @@
     "_enabled": true,
     "number": {
       "__id__": 64
-    }
+    },
+    "_fake_value": 0
   },
   {
     "__type__": "cc.Node",
@@ -2684,7 +2689,8 @@
     "_enabled": true,
     "number": {
       "__id__": 69
-    }
+    },
+    "_fake_value": 0
   },
   {
     "__type__": "cc.Node",
@@ -2855,7 +2861,8 @@
     "_enabled": true,
     "number": {
       "__id__": 74
-    }
+    },
+    "_fake_value": 0
   },
   {
     "__type__": "cc.Node",
@@ -3026,7 +3033,8 @@
     "_enabled": true,
     "number": {
       "__id__": 79
-    }
+    },
+    "_fake_value": 0
   },
   {
     "__type__": "cc.Node",
@@ -3197,7 +3205,8 @@
     "_enabled": true,
     "number": {
       "__id__": 84
-    }
+    },
+    "_fake_value": 0
   },
   {
     "__type__": "cc.Node",
@@ -3368,7 +3377,8 @@
     "_enabled": true,
     "number": {
       "__id__": 89
-    }
+    },
+    "_fake_value": 0
   },
   {
     "__type__": "cc.Node",
@@ -3539,7 +3549,8 @@
     "_enabled": true,
     "number": {
       "__id__": 94
-    }
+    },
+    "_fake_value": 0
   },
   {
     "__type__": "cc.Node",
@@ -3710,7 +3721,8 @@
     "_enabled": true,
     "number": {
       "__id__": 99
-    }
+    },
+    "_fake_value": 0
   },
   {
     "__type__": "cc.Node",
@@ -3881,7 +3893,8 @@
     "_enabled": true,
     "number": {
       "__id__": 104
-    }
+    },
+    "_fake_value": 0
   },
   {
     "__type__": "cc.Node",
@@ -4052,7 +4065,8 @@
     "_enabled": true,
     "number": {
       "__id__": 109
-    }
+    },
+    "_fake_value": 0
   },
   {
     "__type__": "cc.Node",
@@ -4223,7 +4237,8 @@
     "_enabled": true,
     "number": {
       "__id__": 114
-    }
+    },
+    "_fake_value": 0
   },
   {
     "__type__": "cc.Node",
@@ -4394,7 +4409,8 @@
     "_enabled": true,
     "number": {
       "__id__": 119
-    }
+    },
+    "_fake_value": 0
   },
   {
     "__type__": "cc.Sprite",
@@ -4559,8 +4575,18 @@
         "__id__": 120
       }
     ],
+    "block_gap": 7.5,
     "replay_btn": {
       "__id__": 37
-    }
+    },
+    "block_prefab": {
+      "__uuid__": "6322e46d-d35f-4948-a012-df6e76ddc705"
+    },
+    "game": {
+      "__id__": 123
+    },
+    "_tiles": [],
+    "_free_tiles": [],
+    "_is_animation": false
   }
 ]

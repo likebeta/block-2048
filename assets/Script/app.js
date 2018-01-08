@@ -1,87 +1,78 @@
-const Tile = require('./tile');
-
 cc.Class({
     extends: cc.Component,
 
     properties: {
-        best_score: {
-            default: null,
-            type: cc.Label
-        },
-        score: {
-            default: null,
-            type: cc.Label
-        },
+        best_score: cc.Label,
+        score: cc.Label,
         game_wrap: {
             default: [],
             type: cc.Sprite
         },
-
         block_gap: 7.5,
-        replay_btn: {
-            default: null,
-            type: cc.Button
-        },
+        replay_btn: cc.Button,
+        block_prefab: cc.Prefab,
+        game: cc.Layout,
         _tiles: [],
         _free_tiles: [],
+        _is_animation: false,
+        _game_over: false
     },
 
     // LIFE-CYCLE CALLBACKS:
 
     onLoad() {
-        this.addInputControl();
-        this.addTouchControl();
-        for (let i in this.game_wrap) {
-            let tile = this.game_wrap[i].getComponent('tile');
-            this._tiles.push(tile);
-            this.addFreeBlock(i);
+        this.addInputControl(this.game);
+        this.addTouchControl(this.game);
+        this.initBlocks();
+    },
+    initBlocks() {
+        let self = this;
+        this.game_wrap.forEach(function (block, i) {
+            let tile = block.getComponent('tile');
+            self._tiles.push(tile);
+            self.addFreeBlock(i);
             tile.set_value(0);
-        }
-
+        });
         let one = this.getFreeBlock();
         this._tiles[one].set_value(2);
         let two = this.getFreeBlock();
         this._tiles[two].set_value(2);
     },
-
-    start() {},
-
     // update (dt) {},
     loadData() {
         let gamedata = cc.sys.localStorage.getItem('game.2048.data') || '';
         if (gamedata) {
             gamedata = JSON.parse(gamedata);
             if (gamedata.score_info) {
-                var info = this.getChildByName('info_wrap');
+                let info = this.getChildByName('info_wrap');
                 info.recover(gamedata.score_info);
             }
             if (gamedata.block_info) {
-                var bm = this.getChildByName('block_manager');
+                let bm = this.getChildByName('block_manager');
                 bm.recover(gamedata.block_info);
             }
         }
         return true;
     },
     saveData() {
-        var gamedata = {
+        let game_data = {
             score_info: {
                 high_score: parseInt(this.best_score.string),
                 score: parseInt(this.score.string)
             },
             block_info: {}
         };
-        gamedata = JSON.stringify(gamedata);
-        cc.sys.localStorage.setItem('game.2048.data', gamedata);
+        game_data = JSON.stringify(game_data);
+        cc.sys.localStorage.setItem('game.2048.data', game_data);
         return true;
     },
-    addInputControl() {
+    addInputControl(target) {
         let self = this;
         // 添加键盘事件监听
         cc.eventManager.addListener({
             event: cc.EventListener.KEYBOARD,
             // 有按键按下时，判断是否是我们指定的方向控制键，并设置向对应方向加速
             onKeyPressed: function (keyCode, event) {
-                cc.log('input', keyCode, event);
                 let result = false;
                 switch (keyCode) {
                     case cc.KEY.up:
@@ -104,17 +95,17 @@ cc.Class({
                     self.saveData();
                 }
             }
-        }, self.node);
+        }, target.node);
     },
-    addTouchControl() {
+    addTouchControl(target) {
         let begin_xy;
         let self = this;
         // 添加触摸事件监听
-        this.node.on(cc.Node.EventType.TOUCH_START, function (event) {
+        target.node.on(cc.Node.EventType.TOUCH_START, function (event) {
             begin_xy = event.getLocation();
             return true;
-        }, this);
-        this.node.on(cc.Node.EventType.TOUCH_END, function (event) {
+        }, target);
+        target.node.on(cc.Node.EventType.TOUCH_END, function (event) {
             let end_xy = event.getLocation();
             let x_axis = end_xy.x - begin_xy.x;
             let y_axis = end_xy.y - begin_xy.y;
@@ -138,7 +129,7 @@ cc.Class({
                 }
                 self.saveData();
             }
-        }, this);
+        }, target);
     },
     handleAction(direction) {
         // todo: 
@@ -155,39 +146,56 @@ cc.Class({
             this.best_score.string = new_score;
         }
     },
-    addFreeBlock (tag) {
+    addFreeBlock(tag) {
         this._free_tiles.push(tag);
     },
-    getFreeBlock () {
+    getFreeBlock() {
         let index = rand(10000) % this._free_tiles.length;
         let return_val = this._free_tiles[index];
         this.removeFreeBlockByIndex(index);
         return return_val;
     },
-    removeFreeBlockByIndex (index) {
+    removeFreeBlockByIndex(index) {
         this._free_tiles[index] = this._free_tiles[0];
         this._free_tiles.shift();
     },
-    randomNewBlock () {
-        # todo
+    randomNewBlock() {
         if (this._free_tiles.length === 0) {
             cc.log('no free block exist, maybe win');
             return null;
         }
-        var tag = this.getFreeBlock();
-        var b = this.getChildByTag(tag);
-        var tmp = b.clone();
+        let index = this.getFreeBlock();
+        let b = this._tiles[index];
+        let tmp = cc.instantiate(this.block_prefab);
         this.addChild(tmp, 99);
-        var value = (rand(100) <= 10) ? 4 : 2;
-        b.setFakeValue(value);
-        tmp.setValue(value);
-        tmp.setTag(100 + tag);
+        let value = (rand(100) <= 10) ? 4 : 2;
+        b.set_fake_value(value);
+        tmp.set_value(value);
         tmp.setScale(0.2);
-        this.is_animation = true;
-        var zoom_in = new cc.ScaleTo(0.2, 1.0);
-        var action_callback = new cc.CallFunc(this.animationEnd, this, [b, value]);
-        var seq = new cc.Sequence(zoom_in, action_callback);
+        this._is_animation = true;
+        let zoom_in = new cc.ScaleTo(0.2, 1.0);
+        let action_callback = new cc.CallFunc(this.animationEnd, this, [b, value]);
+        let seq = new cc.Sequence(zoom_in, action_callback);
         tmp.runAction(seq);
         return b;
+    },
+    animationEnd(target, data) {
+        let b = data[0];
+        let value = data[1];
+        target.removeFromParent(true);
+        b.set_value(value);
+        this.is_animation = false;
+    },
+    rePlay() {
+        if (this._is_animation) {
+            cc.log('is animation, rePlay failed');
+            return false;
+        }
+        cc.log('rePlay');
+        this._game_over = false;
+        this._is_animation = false;
+        this._free_tiles = [];
+        this.removeAllChildren(true);
+        return this.initBlocks();
     },
 });
