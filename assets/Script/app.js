@@ -245,7 +245,7 @@ cc.Class({
         this._free_tiles.push(tag);
     },
     getFreeBlock() {
-        var index = rand(10000) % this._free_tiles.length;
+        var index = utils.rand(10000) % this._free_tiles.length;
         var return_val = this._free_tiles[index];
         this.removeFreeBlockByIndex(index);
         return return_val;
@@ -277,7 +277,7 @@ cc.Class({
         var tmp = cc.instantiate(this.block_prefab);
         block.addChild(tmp, 99);
         tmp.setPosition(0, 0);
-        var value = (rand(100) <= 10) ? 4 : 2;
+        var value = (utils.rand(100) <= 10) ? 4 : 2;
         b.set_fake_value(value);
         var tile = tmp.getComponent('tile');
         tile.set_value(value);
