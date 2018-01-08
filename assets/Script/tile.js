@@ -12,7 +12,7 @@ const bk_color_map = {
     2048: cc.color(0xed, 0xc2, 0x2e, 0xFF)
 };
 
-let text_color_map = {
+const text_color_map = {
     2: cc.color(0x77, 0x6e, 0x65, 0xFF),
     4: cc.color(0x77, 0x6e, 0x65, 0xFF),
     8: cc.color(0x77, 0x6e, 0x65, 0xFF),
@@ -56,7 +56,7 @@ cc.Class({
     },
 
     set_value: function (value) {
-        let _fake_value = value.toString();
+        var _fake_value = value.toString();
         if (this.number.string !== _fake_value) {
             this._fake_value = _fake_value;
             if (value === 0) {

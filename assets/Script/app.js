@@ -23,8 +23,8 @@ cc.Class({
     onLoad() {
         this.addInputControl(this.game);
         this.addTouchControl(this.game);
-        for (let i = 0; i < block_number * block_number; ++i) {
-            let block = cc.instantiate(this.block_prefab);
+        for (var i = 0; i < block_number * block_number; ++i) {
+            var block = cc.instantiate(this.block_prefab);
             this.game.node.addChild(block);
             this._blocks.push(block);
         }
@@ -32,21 +32,21 @@ cc.Class({
         this.loadData();
     },
     resetBlocks() {
-        let self = this;
+        var self = this;
         this._blocks.forEach(function (block, i) {
-            let tile = block.getComponent('tile');
+            var tile = block.getComponent('tile');
             self._tiles.push(tile);
             self.addFreeBlock(i);
             tile.set_value(0);
         });
-        let one = this.getFreeBlock();
+        var one = this.getFreeBlock();
         this._tiles[one].set_value(2);
-        let two = this.getFreeBlock();
+        var two = this.getFreeBlock();
         this._tiles[two].set_value(2);
     },
     // update (dt) {},
     loadData() {
-        let game_data = cc.sys.localStorage.getItem('game.2048.data') || '';
+        var game_data = cc.sys.localStorage.getItem('game.2048.data') || '';
         if (game_data) {
             game_data = JSON.parse(game_data);
             if (game_data.number !== block_number) {
@@ -67,7 +67,7 @@ cc.Class({
         return true;
     },
     saveData() {
-        let game_data = {
+        var game_data = {
             number: block_number,
             game_over: this._game_over,
             game_result: this._game_result,
@@ -85,9 +85,9 @@ cc.Class({
         };
     },
     snapshotBlocks() {
-        let board = [];
-        for (let i = 0; i < block_number * block_number; ++i) {
-            let v = this._tiles[i].get_value();
+        var board = [];
+        for (var i = 0; i < block_number * block_number; ++i) {
+            var v = this._tiles[i].get_value();
             board.push(v);
         }
         return {
@@ -109,7 +109,7 @@ cc.Class({
         if (info.board !== undefined) {
             cc.log('recover board to', info.board);
             this._free_tiles = [];
-            for (let i = 0; i < info.board.length; ++i) {
+            for (var i = 0; i < info.board.length; ++i) {
                 this._tiles[i].set_value(info.board[i]);
                 if (info.board[i] === 0) {
                     this._free_tiles.push(i);
@@ -120,13 +120,13 @@ cc.Class({
         return true;
     },
     addInputControl(target) {
-        let self = this;
+        var self = this;
         // 添加键盘事件监听
         cc.eventManager.addListener({
             event: cc.EventListener.KEYBOARD,
             // 有按键按下时，判断是否是我们指定的方向控制键，并设置向对应方向加速
             onKeyPressed(keyCode, event) {
-                let result = false;
+                var result = false;
                 switch (keyCode) {
                     case cc.KEY.up:
                         result = self.handleAction('up');
@@ -151,18 +151,18 @@ cc.Class({
         }, target.node);
     },
     addTouchControl(target) {
-        let begin_xy;
-        let self = this;
+        var begin_xy;
+        var self = this;
         // 添加触摸事件监听
         target.node.on(cc.Node.EventType.TOUCH_START, function (event) {
             begin_xy = event.getLocation();
             return true;
         }, target);
         target.node.on(cc.Node.EventType.TOUCH_END, function (event) {
-            let end_xy = event.getLocation();
-            let x_axis = end_xy.x - begin_xy.x;
-            let y_axis = end_xy.y - begin_xy.y;
-            let result = false;
+            var end_xy = event.getLocation();
+            var x_axis = end_xy.x - begin_xy.x;
+            var y_axis = end_xy.y - begin_xy.y;
+            var result = false;
             if (Math.abs(x_axis) >= Math.abs(y_axis)) {
                 if (x_axis <= -self.block_gap) {
                     result = self.handleAction('left');
@@ -201,12 +201,12 @@ cc.Class({
 
         cc.log(direction);
 
-        let tmp_blocks = [];
-        for (let i = 0; i < block_number * block_number; ++i) {
+        var tmp_blocks = [];
+        for (var i = 0; i < block_number * block_number; ++i) {
             tmp_blocks.push(this._tiles[i]);
         }
 
-        let result = false;
+        var result = false;
         switch (direction) {
             case 'left':
                 result = this.moveLeft(tmp_blocks);
@@ -235,7 +235,7 @@ cc.Class({
         return result;
     },
     incrScore(score) {
-        let new_score = score + parseInt(this.score.string);
+        var new_score = score + parseInt(this.score.string);
         this.score.string = new_score;
         if (new_score > this.best_score.string) {
             this.best_score.string = new_score;
@@ -245,8 +245,8 @@ cc.Class({
         this._free_tiles.push(tag);
     },
     getFreeBlock() {
-        let index = rand(10000) % this._free_tiles.length;
-        let return_val = this._free_tiles[index];
+        var index = rand(10000) % this._free_tiles.length;
+        var return_val = this._free_tiles[index];
         this.removeFreeBlockByIndex(index);
         return return_val;
     },
@@ -255,7 +255,7 @@ cc.Class({
         this._free_tiles.shift();
     },
     removeFreeBlock(tag) {
-        for (let i = 0; i < this._free_tiles.length; ++i) {
+        for (var i = 0; i < this._free_tiles.length; ++i) {
             if (this._free_tiles[i] === tag) {
                 this.removeFreeBlockByIndex(i);
                 break;
@@ -271,27 +271,27 @@ cc.Class({
             cc.log('no free block exist, maybe win');
             return null;
         }
-        let index = this.getFreeBlock();
-        let b = this._tiles[index];
-        let block = this._blocks[index];
-        let tmp = cc.instantiate(this.block_prefab);
+        var index = this.getFreeBlock();
+        var b = this._tiles[index];
+        var block = this._blocks[index];
+        var tmp = cc.instantiate(this.block_prefab);
         block.addChild(tmp, 99);
         tmp.setPosition(0, 0);
-        let value = (rand(100) <= 10) ? 4 : 2;
+        var value = (rand(100) <= 10) ? 4 : 2;
         b.set_fake_value(value);
-        let tile = tmp.getComponent('tile');
+        var tile = tmp.getComponent('tile');
         tile.set_value(value);
         tmp.setScale(0.2);
         this._is_animation = true;
-        let zoom_in = new cc.ScaleTo(0.2, 1.0);
-        let action_callback = new cc.CallFunc(this.animationEnd, this, [b, value]);
-        let seq = new cc.Sequence(zoom_in, action_callback);
+        var zoom_in = new cc.ScaleTo(0.2, 1.0);
+        var action_callback = new cc.CallFunc(this.animationEnd, this, [b, value]);
+        var seq = new cc.Sequence(zoom_in, action_callback);
         tmp.runAction(seq);
         return b;
     },
     animationEnd(target, data) {
-        let b = data[0];
-        let value = data[1];
+        var b = data[0];
+        var value = data[1];
         target.removeFromParent(true);
         b.set_value(value);
         this._is_animation = false;
@@ -311,17 +311,17 @@ cc.Class({
         return true;
     },
     moveLeft(blocks, test) {
-        let success = false, score = 0;
-        for (let y = 0; y < block_number; ++y) {
-            let left = -1, tmp_tag = 0, tmp_value = 0;
-            for (let x = 1; x < block_number; ++x) {
-                let curr_tag = x + y * block_number;
-                let curr_value = blocks[curr_tag].get_value();
+        var success = false, score = 0;
+        for (var y = 0; y < block_number; ++y) {
+            var left = -1, tmp_tag = 0, tmp_value = 0;
+            for (var x = 1; x < block_number; ++x) {
+                var curr_tag = x + y * block_number;
+                var curr_value = blocks[curr_tag].get_value();
                 if (curr_value <= 0) {
                     continue;
                 }
-                let left_prev = left;
-                for (let i = x - 1; i > left; --i) {
+                var left_prev = left;
+                for (var i = x - 1; i > left; --i) {
                     tmp_tag = i + y * block_number;
                     tmp_value = blocks[tmp_tag].get_value();
                     if (tmp_value <= 0) {
@@ -366,17 +366,17 @@ cc.Class({
         return {success: success, score: score};
     },
     moveRight(blocks, test) {
-        let success = false, score = 0;
-        for (let y = 0; y < block_number; ++y) {
-            let right = block_number, tmp_tag = 0, tmp_value = 0;
-            for (let x = block_number - 2; x >= 0; --x) {
-                let curr_tag = x + y * block_number;
-                let curr_value = blocks[curr_tag].get_value();
+        var success = false, score = 0;
+        for (var y = 0; y < block_number; ++y) {
+            var right = block_number, tmp_tag = 0, tmp_value = 0;
+            for (var x = block_number - 2; x >= 0; --x) {
+                var curr_tag = x + y * block_number;
+                var curr_value = blocks[curr_tag].get_value();
                 if (curr_value <= 0) {
                     continue;
                 }
-                let right_prev = right;
-                for (let i = x + 1; i < right; ++i) {
+                var right_prev = right;
+                for (var i = x + 1; i < right; ++i) {
                     tmp_tag = i + y * block_number;
                     tmp_value = blocks[tmp_tag].get_value();
                     if (tmp_value <= 0) {
@@ -421,17 +421,17 @@ cc.Class({
         return {success: success, score: score};
     },
     moveUp(blocks, test) {
-        let success = false, score = 0;
-        for (let x = 0; x < block_number; ++x) {
-            let up = block_number, tmp_tag = 0, tmp_value = 0;
-            for (let y = block_number - 2; y >= 0; --y) {
-                let curr_tag = x + y * block_number;
-                let curr_value = blocks[curr_tag].get_value();
+        var success = false, score = 0;
+        for (var x = 0; x < block_number; ++x) {
+            var up = block_number, tmp_tag = 0, tmp_value = 0;
+            for (var y = block_number - 2; y >= 0; --y) {
+                var curr_tag = x + y * block_number;
+                var curr_value = blocks[curr_tag].get_value();
                 if (curr_value <= 0) {
                     continue;
                 }
-                let up_prev = up;
-                for (let i = y + 1; i < up; ++i) {
+                var up_prev = up;
+                for (var i = y + 1; i < up; ++i) {
                     tmp_tag = x + i * block_number;
                     tmp_value = blocks[tmp_tag].get_value();
                     if (tmp_value <= 0) {
@@ -476,17 +476,17 @@ cc.Class({
         return {success: success, score: score};
     },
     moveDown(blocks, test) {
-        let success = false, score = 0;
-        for (let x = 0; x < block_number; ++x) {
-            let down = -1, tmp_tag = 0, tmp_value = 0;
-            for (let y = 1; y < block_number; ++y) {
-                let curr_tag = x + y * block_number;
-                let curr_value = blocks[curr_tag].get_value();
+        var success = false, score = 0;
+        for (var x = 0; x < block_number; ++x) {
+            var down = -1, tmp_tag = 0, tmp_value = 0;
+            for (var y = 1; y < block_number; ++y) {
+                var curr_tag = x + y * block_number;
+                var curr_value = blocks[curr_tag].get_value();
                 if (curr_value <= 0) {
                     continue;
                 }
-                let down_prev = down;
-                for (let i = y - 1; i > down; --i) {
+                var down_prev = down;
+                for (var i = y - 1; i > down; --i) {
                     tmp_tag = x + i * block_number;
                     tmp_value = blocks[tmp_tag].get_value();
                     if (tmp_value <= 0) {
@@ -531,8 +531,8 @@ cc.Class({
         return {success: success, score: score};
     },
     combineBlocks(blocks, t1, t2) {
-        let v1 = blocks[t1].get_value();
-        let v2 = blocks[t2].get_value();
+        var v1 = blocks[t1].get_value();
+        var v2 = blocks[t2].get_value();
         this.addFreeBlock(t1);
         this.removeFreeBlock(t2);
         blocks[t1].set_value(0);
