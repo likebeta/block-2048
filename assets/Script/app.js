@@ -23,6 +23,7 @@ cc.Class({
     onLoad() {
         this.addInputControl(this.game);
         this.addTouchControl(this.game);
+        this.replay_btn.node.on('click', this.rePlay, this);
         for (var i = 0; i < block_number * block_number; ++i) {
             var block = cc.instantiate(this.block_prefab);
             this.game.node.addChild(block);
@@ -296,7 +297,7 @@ cc.Class({
         b.set_value(value);
         this._is_animation = false;
     },
-    rePlay() {
+    rePlay(event) {
         if (this._is_animation) {
             cc.log('is animation, rePlay failed');
             return false;
@@ -306,8 +307,9 @@ cc.Class({
         this._is_animation = false;
         this._tiles = [];
         this._free_tiles = [];
-        this.resetBlocks();
         this.score.string = 0;
+        this.resetBlocks();
+        this.saveData();
         return true;
     },
     moveLeft(blocks, test) {
