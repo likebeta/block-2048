@@ -7,13 +7,6 @@
 #include "cocos/scripting/js-bindings/manual/jsb_global.h"
 #include "cocos/scripting/js-bindings/jswrapper/SeApi.h"
 
-#if (CC_TARGET_PLATFORM == CC_PLATFORM_ANDROID || CC_TARGET_PLATFORM == CC_PLATFORM_IOS) && PACKAGE_AS
-#include "SDKManager.h"
-#include "jsb_anysdk_protocols_auto.hpp"
-#include "manualanysdkbindings.hpp"
-using namespace anysdk::framework;
-#endif
-
 USING_NS_CC;
 
 AppDelegate::AppDelegate()
@@ -23,9 +16,6 @@ AppDelegate::AppDelegate()
 AppDelegate::~AppDelegate()
 {
     ScriptEngineManager::destroyInstance();
-#if (CC_TARGET_PLATFORM == CC_PLATFORM_ANDROID || CC_TARGET_PLATFORM == CC_PLATFORM_IOS) && PACKAGE_AS
-    SDKManager::getInstance()->purge();
-#endif
 }
 
 void AppDelegate::initGLContextAttrs()
@@ -37,9 +27,6 @@ void AppDelegate::initGLContextAttrs()
 
 bool AppDelegate::applicationDidFinishLaunching()
 {
-#if CC_TARGET_PLATFORM == CC_PLATFORM_IOS && PACKAGE_AS
-    SDKManager::getInstance()->loadAllPlugins();
-#endif
     // initialize director
     auto director = Director::getInstance();
     auto glview = director->getOpenGLView();
@@ -74,11 +61,6 @@ bool AppDelegate::applicationDidFinishLaunching()
     });
 
     jsb_register_all_modules();
-
-#if (CC_TARGET_PLATFORM == CC_PLATFORM_ANDROID || CC_TARGET_PLATFORM == CC_PLATFORM_IOS) && PACKAGE_AS
-    se->addRegisterCallback(register_all_anysdk_framework);
-    se->addRegisterCallback(register_all_anysdk_manual);
-#endif
 
     se->start();
 
