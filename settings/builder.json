@@ -6,27 +6,28 @@
   "includeAnySDK": false,
   "includeSDKBox": false,
   "inlineSpriteFrames": true,
-  "inlineSpriteFrames_native": true,
+  "inlineSpriteFrames_native": false,
   "jailbreakPlatform": false,
   "md5Cache": true,
   "mergeStartScene": false,
   "oauthLoginServer": "",
   "optimizeHotUpdate": false,
   "orientation": {
-    "landscapeLeft": true,
-    "landscapeRight": true,
-    "portrait": false,
+    "landscapeLeft": false,
+    "landscapeRight": false,
+    "portrait": true,
     "upsideDown": false
   },
-  "packageName": "org.cocos2d.2048-creator",
+  "packageName": "com.scropion.block_2048",
   "privateKey": "",
   "renderMode": "0",
   "startScene": "f19f2ba8-da92-4b7b-9803-d4f09007c927",
-  "title": "2048",
+  "title": "block_2048",
   "webOrientation": "portrait",
   "wechatgame": {
     "appid": "wx6ac3f5090a6b99c5",
     "orientation": "portrait"
   },
-  "xxteaKey": "6dc3e032-e4ad-49"
+  "xxteaKey": "6dc3e032-e4ad-49",
+  "zipCompressJs": true
 }
