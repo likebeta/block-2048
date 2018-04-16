@@ -1,3 +1,7 @@
+if (cc.sys.platform === cc.sys.WECHAT_GAME) {
+    window.Bmob = require('./bmob/bmob');
+    Bmob.initialize("81edd8aaef1d23df95c9876bd11aa784", "cdb7e97f429d3c3df89020130997e0ab");
+}
 const block_number = 4;
 
 cc.Class({
@@ -21,6 +25,37 @@ cc.Class({
     // LIFE-CYCLE CALLBACKS:
 
     onLoad() {
+        if (cc.sys.platform === cc.sys.WECHAT_GAME) {
+            this.fetch_remote_data();
+        } else {
+            this._init_scene();
+        }
+    },
+    fetch_remote_data() {
+        var me = Bmob.User.current();
+        if (me === undefined) {
+            var self = this;
+            wx.login({
+                success: function (res) {
+                    cc.info('get code', res.code);
+                    self.login_with_weapp(res.code);
+                },
+                fail: function (err) {
+                    self.on_fatal_error('wx.login', err);
+                }
+            });
+        } else {
+            this._init_scene();
+        }
+    },
+    on_fetch_remote_data_complete(res) {
+        this._init_scene();
+    },
+    on_fatal_error(action, err) {
+        cc.info(action, ' failed, restart', err);
+        cc.game.restart();
+    },
+    _init_scene() {
         this.addInputControl(this.game);
         this.addTouchControl(this.game);
         this.replay_btn.node.on('click', this.rePlay, this);
@@ -31,6 +66,74 @@ cc.Class({
         }
         this.resetBlocks();
         this.loadData();
+    },
+    login_with_weapp(code) {
+        var self = this;
+        var user = new Bmob.User();
+        user.loginWithWeapp(code).then(
+            function (user) {
+                var openid = user.get('authData').weapp.openid;
+                wx.setStorageSync('openid', openid);
+                //保存用户其他信息到用户表
+                wx.getUserInfo({
+                    success: function (result) {
+                        var userInfo = result.userInfo;
+                        var u = Bmob.Object.extend('_User');
+                        var query = new Bmob.Query(u);
+                        query.get(user.id, {
+                            success: function (result) {
+                                result.set('nick', userInfo.nickName);
+                                result.set('avatar', userInfo.avatarUrl);
+                                result.set('sex', userInfo.gender);
+                                result.set('openid', openid);
+                                if (result.get('score') === undefined) {
+                                    result.set('score', 0);
+                                }
+                                result.save();
+                                self.on_fetch_remote_data_complete();
+                            },
+                            fail: function (err) {
+                                self.on_fatal_error('query.get', err)
+                            }
+                        });
+                    },
+                    fail: function (res) {
+                        self.check_auth_setting();
+                    }
+                });
+            },
+            function (err) {
+                self.on_fatal_error('user.loginWithWeapp', err);
+            }
+        );
+    },
+    check_auth_setting(setting) {
+        var self = this;
+        cc.info('setting', setting);
+        if (setting) {
+            if (setting['scope.userInfo']) {
+                self.fetch_remote_data();
+            } else {
+                wx.openSetting({
+                    success: function (res) {
+                        self.check_auth_setting(res.authSetting);
+                    },
+                    fail: function (err) {
+                        self.on_fatal_error('wx.openSetting', err);
+                    }
+                })
+            }
+        } else {
+            cc.info('get setting');
+            wx.getSetting({
+                success: function (res) {
+                    self.check_auth_setting(res.authSetting);
+                }, 
+                fail: function (err) {
+                    self.on_fatal_error('wx.getSetting', err);
+                }
+            });
+        }
     },
     resetBlocks() {
         var self = this;
@@ -63,6 +166,14 @@ cc.Class({
             if (game_data.game_over !== undefined) {
                 this._game_over = Boolean(game_data.game_over);
                 this._game_result = game_data.game_result;
+            }
+        } else {
+            if (cc.sys.platform === cc.sys.WECHAT_GAME) {
+                var me = Bmob.User.current();
+                if (me) {
+                    this.best_score.string = me.get('score');
+                    cc.log('recover best score from bmob', this.best_score.string);
+                }
             }
         }
         return true;
@@ -97,7 +208,7 @@ cc.Class({
     },
     recoverScore(info) {
         if (info.best_score) {
-            cc.log('recover best score to', info.best_score);
+            cc.log('recover best score from local', info.best_score);
             this.best_score.string = info.best_score;
         }
         if (info.score) {
@@ -194,8 +305,7 @@ cc.Class({
         if (this._game_result === 'lose') {
             cc.log('you lost, game over -_-!');
             return false;
-        }
-        else if (this._game_result === 'win') {
+        } else if (this._game_result === 'win') {
             cc.log('you won, game over ^_^!');
             return false;
         }
@@ -223,11 +333,11 @@ cc.Class({
                 break;
         }
 
-        if (result.success) {       // vanish block this turn
+        if (result.success) { // vanish block this turn
             this.randomNewBlock();
             if (this._free_tiles.length === 0) {
-                if (!this.moveLeft(tmp_blocks, true) && !this.moveRight(tmp_blocks, true)
-                    && !this.moveUp(tmp_blocks, true) && !this.moveDown(tmp_blocks, true)) {
+                if (!this.moveLeft(tmp_blocks, true) && !this.moveRight(tmp_blocks, true) &&
+                    !this.moveUp(tmp_blocks, true) && !this.moveDown(tmp_blocks, true)) {
                     this._game_result = 'lose';
                     cc.log('you lose, game over');
                 }
@@ -240,6 +350,13 @@ cc.Class({
         this.score.string = new_score;
         if (new_score > this.best_score.string) {
             this.best_score.string = new_score;
+            if (cc.sys.platform === cc.sys.WECHAT_GAME) {
+                var me = Bmob.User.current();
+                if (me && new_score > me.get('score')) {
+                    me.set('score', new_score);
+                    me.save();
+                }
+            }
         }
     },
     addFreeBlock(tag) {
@@ -313,9 +430,12 @@ cc.Class({
         return true;
     },
     moveLeft(blocks, test) {
-        var success = false, score = 0;
+        var success = false,
+            score = 0;
         for (var y = 0; y < block_number; ++y) {
-            var left = -1, tmp_tag = 0, tmp_value = 0;
+            var left = -1,
+                tmp_tag = 0,
+                tmp_value = 0;
             for (var x = 1; x < block_number; ++x) {
                 var curr_tag = x + y * block_number;
                 var curr_value = blocks[curr_tag].get_value();
@@ -326,9 +446,7 @@ cc.Class({
                 for (var i = x - 1; i > left; --i) {
                     tmp_tag = i + y * block_number;
                     tmp_value = blocks[tmp_tag].get_value();
-                    if (tmp_value <= 0) {
-                    }
-                    else if (tmp_value === curr_value) { // 合并
+                    if (tmp_value <= 0) {} else if (tmp_value === curr_value) { // 合并
                         if (test) {
                             return true;
                         }
@@ -336,13 +454,11 @@ cc.Class({
                         left = i;
                         success += true;
                         break;
-                    }
-                    else {
+                    } else {
                         if (i + 1 === x) { // 相邻未移动
                             left = i;
                             break;
-                        }
-                        else {
+                        } else {
                             if (test) {
                                 return true;
                             }
@@ -355,7 +471,7 @@ cc.Class({
                         }
                     }
                 }
-                if (left === left_prev && left + 1 !== x) {   // 未移动, 全部是free
+                if (left === left_prev && left + 1 !== x) { // 未移动, 全部是free
                     if (test) {
                         return true;
                     }
@@ -365,12 +481,18 @@ cc.Class({
                 }
             }
         }
-        return {success: success, score: score};
+        return {
+            success: success,
+            score: score
+        };
     },
     moveRight(blocks, test) {
-        var success = false, score = 0;
+        var success = false,
+            score = 0;
         for (var y = 0; y < block_number; ++y) {
-            var right = block_number, tmp_tag = 0, tmp_value = 0;
+            var right = block_number,
+                tmp_tag = 0,
+                tmp_value = 0;
             for (var x = block_number - 2; x >= 0; --x) {
                 var curr_tag = x + y * block_number;
                 var curr_value = blocks[curr_tag].get_value();
@@ -381,9 +503,7 @@ cc.Class({
                 for (var i = x + 1; i < right; ++i) {
                     tmp_tag = i + y * block_number;
                     tmp_value = blocks[tmp_tag].get_value();
-                    if (tmp_value <= 0) {
-                    }
-                    else if (tmp_value === curr_value) { // 合并
+                    if (tmp_value <= 0) {} else if (tmp_value === curr_value) { // 合并
                         if (test) {
                             return true;
                         }
@@ -391,13 +511,11 @@ cc.Class({
                         right = i;
                         success = true;
                         break;
-                    }
-                    else {
+                    } else {
                         if (i - 1 === x) { // 相邻未移动
                             right = i;
                             break;
-                        }
-                        else {
+                        } else {
                             if (test) {
                                 return true;
                             }
@@ -410,7 +528,7 @@ cc.Class({
                         }
                     }
                 }
-                if (right === right_prev && right - 1 !== x) {   // 未移动, 全部是free
+                if (right === right_prev && right - 1 !== x) { // 未移动, 全部是free
                     if (test) {
                         return true;
                     }
@@ -420,12 +538,18 @@ cc.Class({
                 }
             }
         }
-        return {success: success, score: score};
+        return {
+            success: success,
+            score: score
+        };
     },
     moveUp(blocks, test) {
-        var success = false, score = 0;
+        var success = false,
+            score = 0;
         for (var x = 0; x < block_number; ++x) {
-            var up = block_number, tmp_tag = 0, tmp_value = 0;
+            var up = block_number,
+                tmp_tag = 0,
+                tmp_value = 0;
             for (var y = block_number - 2; y >= 0; --y) {
                 var curr_tag = x + y * block_number;
                 var curr_value = blocks[curr_tag].get_value();
@@ -436,9 +560,7 @@ cc.Class({
                 for (var i = y + 1; i < up; ++i) {
                     tmp_tag = x + i * block_number;
                     tmp_value = blocks[tmp_tag].get_value();
-                    if (tmp_value <= 0) {
-                    }
-                    else if (tmp_value === curr_value) { // 合并
+                    if (tmp_value <= 0) {} else if (tmp_value === curr_value) { // 合并
                         if (test) {
                             return true;
                         }
@@ -446,13 +568,11 @@ cc.Class({
                         up = i;
                         success = true;
                         break;
-                    }
-                    else {
+                    } else {
                         if (i - 1 === y) { // 相邻未移动
                             up = i;
                             break;
-                        }
-                        else {
+                        } else {
                             if (test) {
                                 return true;
                             }
@@ -465,7 +585,7 @@ cc.Class({
                         }
                     }
                 }
-                if (up === up_prev && up - 1 !== y) {   // 未移动, 全部是free
+                if (up === up_prev && up - 1 !== y) { // 未移动, 全部是free
                     if (test) {
                         return true;
                     }
@@ -475,12 +595,18 @@ cc.Class({
                 }
             }
         }
-        return {success: success, score: score};
+        return {
+            success: success,
+            score: score
+        };
     },
     moveDown(blocks, test) {
-        var success = false, score = 0;
+        var success = false,
+            score = 0;
         for (var x = 0; x < block_number; ++x) {
-            var down = -1, tmp_tag = 0, tmp_value = 0;
+            var down = -1,
+                tmp_tag = 0,
+                tmp_value = 0;
             for (var y = 1; y < block_number; ++y) {
                 var curr_tag = x + y * block_number;
                 var curr_value = blocks[curr_tag].get_value();
@@ -491,9 +617,7 @@ cc.Class({
                 for (var i = y - 1; i > down; --i) {
                     tmp_tag = x + i * block_number;
                     tmp_value = blocks[tmp_tag].get_value();
-                    if (tmp_value <= 0) {
-                    }
-                    else if (tmp_value === curr_value) { // 合并
+                    if (tmp_value <= 0) {} else if (tmp_value === curr_value) { // 合并
                         if (test) {
                             return true;
                         }
@@ -501,13 +625,11 @@ cc.Class({
                         down = i;
                         success = true;
                         break;
-                    }
-                    else {
+                    } else {
                         if (i + 1 === y) { // 相邻未移动
                             down = i;
                             break;
-                        }
-                        else {
+                        } else {
                             if (test) {
                                 return true;
                             }
@@ -520,7 +642,7 @@ cc.Class({
                         }
                     }
                 }
-                if (down === down_prev && down + 1 !== y) {   // 未移动, 全部是free
+                if (down === down_prev && down + 1 !== y) { // 未移动, 全部是free
                     if (test) {
                         return true;
                     }
@@ -530,7 +652,10 @@ cc.Class({
                 }
             }
         }
-        return {success: success, score: score};
+        return {
+            success: success,
+            score: score
+        };
     },
     combineBlocks(blocks, t1, t2) {
         var v1 = blocks[t1].get_value();
