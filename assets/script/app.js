@@ -93,7 +93,7 @@ cc.Class({
                                 self.on_fetch_remote_data_complete();
                             },
                             fail: function (err) {
-                                self.on_fatal_error('query.get', err)
+                                self.on_fatal_error('query.get', err);
                             }
                         });
                     },
@@ -128,7 +128,7 @@ cc.Class({
             wx.getSetting({
                 success: function (res) {
                     self.check_auth_setting(res.authSetting);
-                }, 
+                },
                 fail: function (err) {
                     self.on_fatal_error('wx.getSetting', err);
                 }
@@ -171,8 +171,11 @@ cc.Class({
             if (cc.sys.platform === cc.sys.WECHAT_GAME) {
                 var me = Bmob.User.current();
                 if (me) {
-                    this.best_score.string = me.get('score');
-                    cc.log('recover best score from bmob', this.best_score.string);
+                    var score = me.get('score');
+                    if (score && score > 0) {
+                        this.best_score.string = score;
+                        cc.info('recover best score from bmob', this.best_score.string);
+                    }
                 }
             }
         }
@@ -208,18 +211,18 @@ cc.Class({
     },
     recoverScore(info) {
         if (info.best_score) {
-            cc.log('recover best score from local', info.best_score);
+            cc.info('recover best score from local', info.best_score);
             this.best_score.string = info.best_score;
         }
         if (info.score) {
-            cc.log('recover score to', info.score);
+            cc.info('recover score to', info.score);
             this.score.string = info.score;
         }
         return true;
     },
     recoverBlocks(info) {
         if (info.board !== undefined) {
-            cc.log('recover board to', info.board);
+            cc.info('recover board to', info.board);
             this._free_tiles = [];
             for (var i = 0; i < info.board.length; ++i) {
                 this._tiles[i].set_value(info.board[i]);
@@ -228,7 +231,7 @@ cc.Class({
                 }
             }
         }
-        cc.log('recover free block to', this._free_tiles);
+        cc.info('recover free block to', this._free_tiles);
         return true;
     },
     addInputControl(target) {
@@ -303,10 +306,10 @@ cc.Class({
         }
 
         if (this._game_result === 'lose') {
-            cc.log('you lost, game over -_-!');
+            cc.info('you lost, game over -_-!');
             return false;
         } else if (this._game_result === 'win') {
-            cc.log('you won, game over ^_^!');
+            cc.info('you won, game over ^_^!');
             return false;
         }
 
@@ -339,7 +342,7 @@ cc.Class({
                 if (!this.moveLeft(tmp_blocks, true) && !this.moveRight(tmp_blocks, true) &&
                     !this.moveUp(tmp_blocks, true) && !this.moveDown(tmp_blocks, true)) {
                     this._game_result = 'lose';
-                    cc.log('you lose, game over');
+                    cc.info('you lose, game over');
                 }
             }
         }
@@ -350,9 +353,11 @@ cc.Class({
         this.score.string = new_score;
         if (new_score > this.best_score.string) {
             this.best_score.string = new_score;
-            if (cc.sys.platform === cc.sys.WECHAT_GAME) {
+            if (this._game_result === 'lose' && cc.sys.platform === cc.sys.WECHAT_GAME) {
                 var me = Bmob.User.current();
-                if (me && new_score > me.get('score')) {
+                var score = me.get('score');
+                cc.log('try to save to bmob', new_score, score);
+                if (me && (score === undefined || new_score > score)) {
                     me.set('score', new_score);
                     me.save();
                 }
@@ -419,6 +424,16 @@ cc.Class({
             cc.log('is animation, rePlay failed');
             return false;
         }
+        if (cc.sys.platform === cc.sys.WECHAT_GAME) {
+            var me = Bmob.User.current();
+            var high_score = parseInt(this.best_score.string);
+            var score = me.get('score');
+            cc.log('try to save to bmob', high_score, score);
+            if (me && (score === undefined || high_score > score)) {
+                me.set('score', high_score);
+                me.save();
+            }
+        }
         cc.log('rePlay');
         this._game_over = false;
         this._is_animation = false;
@@ -481,10 +496,14 @@ cc.Class({
                 }
             }
         }
-        return {
-            success: success,
-            score: score
-        };
+        if (test) {
+            return success;
+        } else {
+            return {
+                success: success,
+                score: score
+            };
+        }
     },
     moveRight(blocks, test) {
         var success = false,
@@ -538,10 +557,14 @@ cc.Class({
                 }
             }
         }
-        return {
-            success: success,
-            score: score
-        };
+        if (test) {
+            return success;
+        } else {
+            return {
+                success: success,
+                score: score
+            };
+        }
     },
     moveUp(blocks, test) {
         var success = false,
@@ -595,10 +618,14 @@ cc.Class({
                 }
             }
         }
-        return {
-            success: success,
-            score: score
-        };
+        if (test) {
+            return success;
+        } else {
+            return {
+                success: success,
+                score: score
+            };
+        }
     },
     moveDown(blocks, test) {
         var success = false,
@@ -652,10 +679,14 @@ cc.Class({
                 }
             }
         }
-        return {
-            success: success,
-            score: score
-        };
+        if (test) {
+            return success;
+        } else {
+            return {
+                success: success,
+                score: score
+            };
+        }
     },
     combineBlocks(blocks, t1, t2) {
         var v1 = blocks[t1].get_value();
