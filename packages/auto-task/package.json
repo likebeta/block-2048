@@ -1,0 +1,12 @@
+{
+    "name": "auto-task",
+    "version": "0.0.1",
+    "description": "自动化任务",
+    "author": "likebeta",
+    "main": "main/index.js",
+    "main-menu": {
+      "Packages/auto-task": {
+        "message": "auto-task:say-usage"
+      }
+    }
+  }

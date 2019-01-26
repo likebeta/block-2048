@@ -35,12 +35,19 @@ cc.Class({
         let self = this;
         ctx.storage.login(function(res) {
             ctx.storage.get_current_user(function(res) {
-                if (!res.errCode && res.data) {
+                if (res.errCode) {
+                    self.on_fatal_error('fetch.data', res.errMsg);
+                } else if (res.data) {
                     data = res.data;
                     self._init_scene();
-                } else  {
-                    // todo
-                    cc.log(res);
+                } else {
+                    ctx.storage.new_user({ score: 0 }, function(res) {
+                        if (res.errCode) {
+                            self.on_fatal_error('user.new', res.errMsg);
+                        } else {
+                            self.fetch_remote_data();
+                        }
+                    });
                 }
             });
         });
@@ -49,8 +56,8 @@ cc.Class({
         this._init_scene();
     },
     on_fatal_error(action, err) {
-        cc.log(action, ' failed, restart', err);
-        cc.game.restart();
+        cc.log(action, 'failed, restart', err);
+        cc.game.end();
     },
     _init_scene() {
         this.loading.active = false;
@@ -314,7 +321,7 @@ cc.Class({
                 if (score === undefined || new_score > score) {
                     data.score = new_score;
                     ctx.storage.update_user({ score: new_score }, function(res) {
-                        cc.log("-----", res);
+                        cc.log("user.update", res);
                     });
                 }
             }
@@ -386,7 +393,9 @@ cc.Class({
             cc.log('try to save to remote', high_score, score);
             if (score === undefined || high_score > score) {
                 data.score = high_score;
-                ctx.storage.update_user({ score: high_score });
+                ctx.storage.update_user({ score: high_score }, function(res) {
+                    cc.log("user.update", res);
+                });
             }
         }
         cc.log('rePlay');

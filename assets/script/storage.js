@@ -1,72 +1,61 @@
-const env = 'block-2048-dev-094ee2';
-let open_id = null;
-let db = null;
-let collection = null;
 const NOT_LOGIN = {
     errCode: 400,
     errMsg: "not login"
 };
 
 let Storage = cc.Class({
-    init() {
-        wx.cloud.init({
-            traceUser: true,
-            env: env
-        });
-        db = wx.cloud.database();
-        collection = db.collection('user_info');
+    ctor: function () {
+        this.env = null;
+        this.open_id = null;
+        this.db = null;
+        this.collection = null;
+    },
+    init(env) {
+        wx.cloud.init({ traceUser: true, env: env });
+        this.env = env;
+        this.db = wx.cloud.database();
+        this.collection = this.db.collection('user_info');
     },
     login(cb) {
-        if (open_id) {
-            cb && cb({
-                openid: open_id
-            });
+        let self = this;
+        if (this.open_id) {
+            cb && cb({ openid: this.open_id });
             return
         }
         return wx.cloud.callFunction({
             name: 'login',
-            data: {
-                env: env
-            },
+            data: { env: self.env },
             complete: function (res) {
                 if (!res.errCode) {
-                    open_id = res.result.openid;
+                    self.open_id = res.result.openid;
                 }
-                console.log(res);
+                cc.log(res);
                 cb && cb(res);
             }
         });
     },
     get_current_user(cb) {
-        if (open_id === null) {
+        if (this.open_id === null) {
             cb && cb(NOT_LOGIN);
             return;
         }
-        collection.doc(open_id).get({
-            complete: cb
-        });
+        this.collection.doc(this.open_id).get({ complete: cb });
     },
     new_user(data, cb) {
-        if (open_id === null) {
+        if (this.open_id === null) {
             cb && cb(NOT_LOGIN);
             return;
         }
-        data.ts = db.serverDate();
-        collection.add({
-            data: data,
-            complete: cb
-        });
+        data.ts = this.db.serverDate();
+        this.collection.add({ data: data, complete: cb });
     },
     update_user(data, cb) {
-        if (open_id === null) {
+        if (this.open_id === null) {
             cb && cb(NOT_LOGIN);
             return;
         }
-        data.update_ts = db.serverDate();
-        collection.doc(open_id).update({
-            data: data,
-            complete: cb
-        });
+        data.update_ts = this.db.serverDate();
+        this.collection.doc(this.open_id).update({ data: data, complete: cb });
     }
 });
 

@@ -14,9 +14,15 @@ cc.game.on(cc.game.EVENT_SHOW, function () {
 });
 
 if (cc.sys.platform === cc.sys.WECHAT_GAME) {
-    wx.setEnableDebug({ enableDebug: true });
     let storage = require('storage');
-    storage.init();
+    if (ctx.run_mode === 'prod') {
+        storage.init('block-2048-094ee2');
+    } else {
+        wx.setEnableDebug({ enableDebug: true });
+        storage.init('block-2048-dev-094ee2');
+    }
     ctx.storage = storage;
+    ctx.launch_options = wx.getLaunchOptionsSync();
+    cc.log('lauch options', ctx.launch_options);
 }
 window.ctx = ctx;
