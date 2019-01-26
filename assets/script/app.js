@@ -1,13 +1,13 @@
-if (cc.sys.platform === cc.sys.WECHAT_GAME) {
-    window.Bmob = require('./bmob/bmob');
-    Bmob.initialize("81edd8aaef1d23df95c9876bd11aa784", "cdb7e97f429d3c3df89020130997e0ab");
-}
+require('boot');
 const block_number = 4;
+
+let data = null;
 
 cc.Class({
     extends: cc.Component,
 
     properties: {
+        loading: cc.Node,
         best_score: cc.Label,
         score: cc.Label,
         block_gap: 7.5,
@@ -32,31 +32,29 @@ cc.Class({
         }
     },
     fetch_remote_data() {
-        var me = Bmob.User.current();
-        if (me === undefined) {
-            var self = this;
-            wx.login({
-                success: function (res) {
-                    cc.info('get code', res.code);
-                    self.login_with_weapp(res.code);
-                },
-                fail: function (err) {
-                    self.on_fatal_error('wx.login', err);
+        let self = this;
+        ctx.storage.login(function(res) {
+            ctx.storage.get_current_user(function(res) {
+                if (!res.errCode && res.data) {
+                    data = res.data;
+                    self._init_scene();
+                } else  {
+                    // todo
+                    cc.log(res);
                 }
             });
-        } else {
-            this._init_scene();
-        }
+        });
     },
     on_fetch_remote_data_complete(res) {
         this._init_scene();
     },
     on_fatal_error(action, err) {
-        cc.info(action, ' failed, restart', err);
+        cc.log(action, ' failed, restart', err);
         cc.game.restart();
     },
     _init_scene() {
-        this.addInputControl(this.game);
+        this.loading.active = false;
+        this.addInputControl();
         this.addTouchControl(this.game);
         this.replay_btn.node.on('click', this.rePlay, this);
         for (var i = 0; i < block_number * block_number; ++i) {
@@ -67,49 +65,9 @@ cc.Class({
         this.resetBlocks();
         this.loadData();
     },
-    login_with_weapp(code) {
-        var self = this;
-        var user = new Bmob.User();
-        user.loginWithWeapp(code).then(
-            function (user) {
-                var openid = user.get('authData').weapp.openid;
-                wx.setStorageSync('openid', openid);
-                //保存用户其他信息到用户表
-                wx.getUserInfo({
-                    success: function (result) {
-                        var userInfo = result.userInfo;
-                        var u = Bmob.Object.extend('_User');
-                        var query = new Bmob.Query(u);
-                        query.get(user.id, {
-                            success: function (result) {
-                                result.set('nick', userInfo.nickName);
-                                result.set('avatar', userInfo.avatarUrl);
-                                result.set('sex', userInfo.gender);
-                                result.set('openid', openid);
-                                if (result.get('score') === undefined) {
-                                    result.set('score', 0);
-                                }
-                                result.save();
-                                self.on_fetch_remote_data_complete();
-                            },
-                            fail: function (err) {
-                                self.on_fatal_error('query.get', err);
-                            }
-                        });
-                    },
-                    fail: function (res) {
-                        self.check_auth_setting();
-                    }
-                });
-            },
-            function (err) {
-                self.on_fatal_error('user.loginWithWeapp', err);
-            }
-        );
-    },
     check_auth_setting(setting) {
         var self = this;
-        cc.info('setting', setting);
+        cc.log('setting', setting);
         if (setting) {
             if (setting['scope.userInfo']) {
                 self.fetch_remote_data();
@@ -124,7 +82,7 @@ cc.Class({
                 })
             }
         } else {
-            cc.info('get setting');
+            cc.log('get setting');
             wx.getSetting({
                 success: function (res) {
                     self.check_auth_setting(res.authSetting);
@@ -150,6 +108,7 @@ cc.Class({
     },
     // update (dt) {},
     loadData() {
+        let self = this;
         var game_data = cc.sys.localStorage.getItem('game.2048.data') || '';
         if (game_data) {
             game_data = JSON.parse(game_data);
@@ -158,37 +117,38 @@ cc.Class({
                 return true;
             }
             if (game_data.score_info) {
-                this.recoverScore(game_data.score_info);
+                self.recoverScore(game_data.score_info);
             }
             if (game_data.block_info) {
-                this.recoverBlocks(game_data.block_info);
+                self.recoverBlocks(game_data.block_info);
             }
             if (game_data.game_over !== undefined) {
-                this._game_over = Boolean(game_data.game_over);
-                this._game_result = game_data.game_result;
+                self._game_over = Boolean(game_data.game_over);
+                self._game_result = game_data.game_result;
             }
-        } else {
-            if (cc.sys.platform === cc.sys.WECHAT_GAME) {
-                var me = Bmob.User.current();
-                if (me) {
-                    var score = me.get('score');
-                    if (score && score > 0) {
-                        this.best_score.string = score;
-                        cc.info('recover best score from bmob', this.best_score.string);
-                    }
-                }
+        }
+
+        if (cc.sys.platform === cc.sys.WECHAT_GAME) {
+            let score = data.score;
+            if (score && score > self.best_score.string) {
+                self.best_score.string = score;
+                cc.log('recover best score from remote', self.best_score.string);
             }
         }
         return true;
     },
     saveData() {
-        var game_data = {
+        let game_data = {
             number: block_number,
-            game_over: this._game_over,
-            game_result: this._game_result,
             score_info: this.snapshotScore(),
             block_info: this.snapshotBlocks()
         };
+        if (this._game_result) {
+            game_data.game_result = this.game_result;
+        }
+        if (this.game_over) {
+            game_data.game_over = this.game_over;
+        }
         game_data = JSON.stringify(game_data);
         cc.sys.localStorage.setItem('game.2048.data', game_data);
         return true;
@@ -211,18 +171,18 @@ cc.Class({
     },
     recoverScore(info) {
         if (info.best_score) {
-            cc.info('recover best score from local', info.best_score);
+            cc.log('recover best score from local', info.best_score);
             this.best_score.string = info.best_score;
         }
         if (info.score) {
-            cc.info('recover score to', info.score);
+            cc.log('recover score to', info.score);
             this.score.string = info.score;
         }
         return true;
     },
     recoverBlocks(info) {
         if (info.board !== undefined) {
-            cc.info('recover board to', info.board);
+            cc.log('recover board to', info.board);
             this._free_tiles = [];
             for (var i = 0; i < info.board.length; ++i) {
                 this._tiles[i].set_value(info.board[i]);
@@ -231,39 +191,34 @@ cc.Class({
                 }
             }
         }
-        cc.info('recover free block to', this._free_tiles);
+        cc.log('recover free block to', this._free_tiles);
         return true;
     },
-    addInputControl(target) {
-        var self = this;
-        // 添加键盘事件监听
-        cc.eventManager.addListener({
-            event: cc.EventListener.KEYBOARD,
-            // 有按键按下时，判断是否是我们指定的方向控制键，并设置向对应方向加速
-            onKeyPressed(keyCode, event) {
-                var result = false;
-                switch (keyCode) {
-                    case cc.KEY.up:
-                        result = self.handleAction('up');
-                        break;
-                    case cc.KEY.down:
-                        result = self.handleAction('down');
-                        break;
-                    case cc.KEY.left:
-                        result = self.handleAction('left');
-                        break;
-                    case cc.KEY.right:
-                        result = self.handleAction('right');
-                        break;
-                }
-                if (result.success) {
-                    if (result.score) {
-                        self.incrScore(result.score);
-                    }
-                    self.saveData();
-                }
+    addInputControl() {
+        let self = this;
+        cc.systemEvent.on(cc.SystemEvent.EventType.KEY_DOWN, function(event) {
+            var result = false;
+            switch (event.keyCode) {
+                case cc.KEY.up:
+                    result = self.handleAction('up');
+                    break;
+                case cc.KEY.down:
+                    result = self.handleAction('down');
+                    break;
+                case cc.KEY.left:
+                    result = self.handleAction('left');
+                    break;
+                case cc.KEY.right:
+                    result = self.handleAction('right');
+                    break;
             }
-        }, target.node);
+            if (result.success) {
+                if (result.score) {
+                    self.incrScore(result.score);
+                }
+                self.saveData();
+            }
+        }, this);
     },
     addTouchControl(target) {
         var begin_xy;
@@ -306,10 +261,10 @@ cc.Class({
         }
 
         if (this._game_result === 'lose') {
-            cc.info('you lost, game over -_-!');
+            cc.log('you lost, game over -_-!');
             return false;
         } else if (this._game_result === 'win') {
-            cc.info('you won, game over ^_^!');
+            cc.log('you won, game over ^_^!');
             return false;
         }
 
@@ -342,7 +297,7 @@ cc.Class({
                 if (!this.moveLeft(tmp_blocks, true) && !this.moveRight(tmp_blocks, true) &&
                     !this.moveUp(tmp_blocks, true) && !this.moveDown(tmp_blocks, true)) {
                     this._game_result = 'lose';
-                    cc.info('you lose, game over');
+                    cc.log('you lose, game over');
                 }
             }
         }
@@ -354,12 +309,13 @@ cc.Class({
         if (new_score > this.best_score.string) {
             this.best_score.string = new_score;
             if (this._game_result === 'lose' && cc.sys.platform === cc.sys.WECHAT_GAME) {
-                var me = Bmob.User.current();
-                var score = me.get('score');
-                cc.log('try to save to bmob', new_score, score);
-                if (me && (score === undefined || new_score > score)) {
-                    me.set('score', new_score);
-                    me.save();
+                let score = data.score;
+                cc.log('try to save to remote', new_score, score);
+                if (score === undefined || new_score > score) {
+                    data.score = new_score;
+                    ctx.storage.update_user({ score: new_score }, function(res) {
+                        cc.log("-----", res);
+                    });
                 }
             }
         }
@@ -425,17 +381,17 @@ cc.Class({
             return false;
         }
         if (cc.sys.platform === cc.sys.WECHAT_GAME) {
-            var me = Bmob.User.current();
-            var high_score = parseInt(this.best_score.string);
-            var score = me.get('score');
-            cc.log('try to save to bmob', high_score, score);
-            if (me && (score === undefined || high_score > score)) {
-                me.set('score', high_score);
-                me.save();
+            let high_score = parseInt(this.best_score.string);
+            let score = data.score;
+            cc.log('try to save to remote', high_score, score);
+            if (score === undefined || high_score > score) {
+                data.score = high_score;
+                ctx.storage.update_user({ score: high_score });
             }
         }
         cc.log('rePlay');
         this._game_over = false;
+        this._game_result = null;
         this._is_animation = false;
         this._tiles = [];
         this._free_tiles = [];
