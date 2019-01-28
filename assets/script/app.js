@@ -25,38 +25,44 @@ cc.Class({
     // LIFE-CYCLE CALLBACKS:
 
     onLoad() {
+        let self = this;
         if (cc.sys.platform === cc.sys.WECHAT_GAME) {
-            this.fetch_remote_data();
+            ctx.storage.login(function(res) {
+                console.log('user.login:', res);
+                self.fetch_remote_data(1);
+            });
         } else {
-            this._init_scene();
+            self._init_scene();
         }
     },
-    fetch_remote_data() {
+    fetch_remote_data(times) {
         let self = this;
-        ctx.storage.login(function(res) {
-            ctx.storage.get_current_user(function(res) {
-                if (res.errCode) {
-                    self.on_fatal_error('fetch.data', res.errMsg);
-                } else if (res.data) {
-                    data = res.data;
-                    self._init_scene();
-                } else {
-                    ctx.storage.new_user({ score: 0 }, function(res) {
-                        if (res.errCode) {
-                            self.on_fatal_error('user.new', res.errMsg);
-                        } else {
-                            self.fetch_remote_data();
-                        }
-                    });
-                }
-            });
+        ctx.storage.get_current_user(function(res) {
+            console.log('user.current:', res);
+            if (res.errCode) {
+                self.on_fatal_error('fetch.data', res.errMsg);
+            } else if (res.data) {
+                data = res.data;
+                self._init_scene();
+            } else {
+                ctx.storage.new_user({ score: 0 }, function(res) {
+                    console.log('user.new:', res);
+                    if (res.errCode) {
+                        self.on_fatal_error('user.new', res.errMsg);
+                    } else if (times === 1) {
+                        self.fetch_remote_data(2);
+                    } else {
+                        self.on_fatal_error('fetch.data', '获取不到数据');
+                    }
+                });
+            }
         });
     },
     on_fetch_remote_data_complete(res) {
         this._init_scene();
     },
     on_fatal_error(action, err) {
-        cc.log(action, 'failed, restart', err);
+        console.log(action, 'failed, restart', err);
         cc.game.end();
     },
     _init_scene() {
@@ -74,7 +80,7 @@ cc.Class({
     },
     check_auth_setting(setting) {
         var self = this;
-        cc.log('setting', setting);
+        console.log('setting', setting);
         if (setting) {
             if (setting['scope.userInfo']) {
                 self.fetch_remote_data();
@@ -89,7 +95,7 @@ cc.Class({
                 })
             }
         } else {
-            cc.log('get setting');
+            console.log('get setting');
             wx.getSetting({
                 success: function (res) {
                     self.check_auth_setting(res.authSetting);
@@ -120,7 +126,7 @@ cc.Class({
         if (game_data) {
             game_data = JSON.parse(game_data);
             if (game_data.number !== block_number) {
-                cc.log('block number not equal');
+                console.log('block number not equal');
                 return true;
             }
             if (game_data.score_info) {
@@ -139,7 +145,7 @@ cc.Class({
             let score = data.score;
             if (score && score > self.best_score.string) {
                 self.best_score.string = score;
-                cc.log('recover best score from remote', self.best_score.string);
+                console.log('recover best score from remote', self.best_score.string);
             }
         }
         return true;
@@ -178,18 +184,18 @@ cc.Class({
     },
     recoverScore(info) {
         if (info.best_score) {
-            cc.log('recover best score from local', info.best_score);
+            console.log('recover best score from local', info.best_score);
             this.best_score.string = info.best_score;
         }
         if (info.score) {
-            cc.log('recover score to', info.score);
+            console.log('recover score to', info.score);
             this.score.string = info.score;
         }
         return true;
     },
     recoverBlocks(info) {
         if (info.board !== undefined) {
-            cc.log('recover board to', info.board);
+            console.log('recover board to', info.board);
             this._free_tiles = [];
             for (var i = 0; i < info.board.length; ++i) {
                 this._tiles[i].set_value(info.board[i]);
@@ -198,7 +204,7 @@ cc.Class({
                 }
             }
         }
-        cc.log('recover free block to', this._free_tiles);
+        console.log('recover free block to', this._free_tiles);
         return true;
     },
     addInputControl() {
@@ -263,19 +269,19 @@ cc.Class({
     },
     handleAction(direction) {
         if (this._is_animation) {
-            cc.log('is animation ...');
+            console.log('is animation ...');
             return false;
         }
 
         if (this._game_result === 'lose') {
-            cc.log('you lost, game over -_-!');
+            console.log('you lost, game over -_-!');
             return false;
         } else if (this._game_result === 'win') {
-            cc.log('you won, game over ^_^!');
+            console.log('you won, game over ^_^!');
             return false;
         }
 
-        cc.log(direction);
+        console.log(direction);
 
         var tmp_blocks = [];
         for (var i = 0; i < block_number * block_number; ++i) {
@@ -304,7 +310,7 @@ cc.Class({
                 if (!this.moveLeft(tmp_blocks, true) && !this.moveRight(tmp_blocks, true) &&
                     !this.moveUp(tmp_blocks, true) && !this.moveDown(tmp_blocks, true)) {
                     this._game_result = 'lose';
-                    cc.log('you lose, game over');
+                    console.log('you lose, game over');
                 }
             }
         }
@@ -317,11 +323,11 @@ cc.Class({
             this.best_score.string = new_score;
             if (this._game_result === 'lose' && cc.sys.platform === cc.sys.WECHAT_GAME) {
                 let score = data.score;
-                cc.log('try to save to remote', new_score, score);
+                console.log('try to save to remote', new_score, score);
                 if (score === undefined || new_score > score) {
                     data.score = new_score;
                     ctx.storage.update_user({ score: new_score }, function(res) {
-                        cc.log("user.update", res);
+                        console.log('user.update', res);
                     });
                 }
             }
@@ -354,7 +360,7 @@ cc.Class({
     },
     randomNewBlock() {
         if (this._free_tiles.length === 0) {
-            cc.log('no free block exist, maybe win');
+            console.log('no free block exist, maybe win');
             return null;
         }
         var index = this.getFreeBlock();
@@ -384,21 +390,21 @@ cc.Class({
     },
     rePlay(event) {
         if (this._is_animation) {
-            cc.log('is animation, rePlay failed');
+            console.log('is animation, rePlay failed');
             return false;
         }
         if (cc.sys.platform === cc.sys.WECHAT_GAME) {
             let high_score = parseInt(this.best_score.string);
             let score = data.score;
-            cc.log('try to save to remote', high_score, score);
+            console.log('try to save to remote', high_score, score);
             if (score === undefined || high_score > score) {
                 data.score = high_score;
                 ctx.storage.update_user({ score: high_score }, function(res) {
-                    cc.log("user.update", res);
+                    console.log('user.update', res);
                 });
             }
         }
-        cc.log('rePlay');
+        console.log('rePlay');
         this._game_over = false;
         this._game_result = null;
         this._is_animation = false;

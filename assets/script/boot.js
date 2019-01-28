@@ -1,7 +1,7 @@
 'use strict';
 let ctx = {};
-ctx.run_mode = 'dev';
-cc.log('os', cc.sys.os, 'platform', cc.sys.platform, 'native', cc.sys.isNative, 'browser', cc.sys.isBrowser, 'mobile', cc.sys.isMobile);
+ctx.run_mode = 'prod';
+console.log('os', cc.sys.os, 'platform', cc.sys.platform, 'native', cc.sys.isNative, 'browser', cc.sys.isBrowser, 'mobile', cc.sys.isMobile);
 ctx.event = new cc.EventTarget();
 
 // 游戏进入后台
@@ -23,6 +23,6 @@ if (cc.sys.platform === cc.sys.WECHAT_GAME) {
     }
     ctx.storage = storage;
     ctx.launch_options = wx.getLaunchOptionsSync();
-    cc.log('lauch options', ctx.launch_options);
+    console.log('lauch options', ctx.launch_options);
 }
 window.ctx = ctx;

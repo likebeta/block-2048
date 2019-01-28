@@ -29,7 +29,6 @@ let Storage = cc.Class({
                 if (!res.errCode) {
                     self.open_id = res.result.openid;
                 }
-                cc.log(res);
                 cb && cb(res);
             }
         });
@@ -47,6 +46,7 @@ let Storage = cc.Class({
             return;
         }
         data.ts = this.db.serverDate();
+        data._id = this.open_id;
         this.collection.add({ data: data, complete: cb });
     },
     update_user(data, cb) {
