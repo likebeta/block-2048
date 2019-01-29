@@ -39,22 +39,24 @@ cc.Class({
         let self = this;
         ctx.storage.get_current_user(function(res) {
             console.log('user.current:', res);
-            if (res.errCode) {
-                self.on_fatal_error('fetch.data', res.errMsg);
-            } else if (res.data) {
+            if (res.data) {
                 data = res.data;
                 self._init_scene();
-            } else {
-                ctx.storage.new_user({ score: 0 }, function(res) {
-                    console.log('user.new:', res);
-                    if (res.errCode) {
-                        self.on_fatal_error('user.new', res.errMsg);
-                    } else if (times === 1) {
-                        self.fetch_remote_data(2);
-                    } else {
-                        self.on_fatal_error('fetch.data', '获取不到数据');
-                    }
-                });
+            }  else {
+                if (!res.errCode || res.errCode === -1) {
+                    ctx.storage.new_user({ score: 0 }, function(res) {
+                        console.log('user.new:', res);
+                        if (res.errCode) {
+                            self.on_fatal_error('user.new', res.errMsg);
+                        } else if (times === 1) {
+                            self.fetch_remote_data(2);
+                        } else {
+                            self.on_fatal_error('fetch.data', '获取不到数据');
+                        }
+                    });
+                } else {
+                    self.on_fatal_error('fetch.data', res.errMsg);
+                }
             }
         });
     },
